@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         TagPro RL chat
+// @name         TagPro RL Chat
 // @description  Enhances the chat by stealing ideas from Rocket League
 // @author       Ko
 // @version      0.1.beta
