@@ -2,7 +2,7 @@
 // @name         TagPro RL Chat
 // @description  Enhances the chat by stealing ideas from Rocket League
 // @author       Ko
-// @version      0.1.beta
+// @version      0.2.beta
 // @include      *.koalabeast.com:*
 // @include      *.jukejuice.com:*
 // @include      *.newcompte.fr:*
@@ -12,12 +12,14 @@
 // @license      MIT
 // ==/UserScript==
 
+// TODO: remove 'orbit' to make it work on any server
+
 
 const show_time = 5000; // milliseconds to show the chat after a new message arrives
 const box_width = 300;  // pixels
 const font_size = 12;   // pixels
 const lines = 8;        // number of visible chat lines
-const line_height = 1.2;
+const line_height = 14; // pixels
 
 
 const hide_common_system = true; // hide '15 bonus rank points' etc...
@@ -25,12 +27,7 @@ const hide_default_chat = true; // good for debugging.
 
 
 
-
-
-
 // =====STYLES=====
-
-
 
 // Create our own stylesheet to define the styles in:
 
@@ -51,7 +48,7 @@ styleSheet.insertRule(` #RLC-box {
 position:absolute;
 transition: background 500ms;
 width:`+box_width+`px;
-border-radius: 14px;
+border-radius: 10px;
 }`);
 
 // The container when it's shown (while composing a message)
@@ -71,10 +68,10 @@ width:100%;
 /* However, margin for the top and bottom, */
 margin: 5px 0;
 /* ..because the height -excluding margin- should be a fixed amount of lines */
-height:`+(font_size*lines*line_height)+`px;
+height:`+(lines*line_height)+`px;
 
 overflow:hidden;
-line-height:`+line_height+`;
+line-height:`+line_height+`px;
 font-size:`+font_size+`px;
 transition: all 500ms;
 }`);
@@ -111,7 +108,8 @@ styleSheet.insertRule(` #RLC-box .chats div.announcement       { color:#FF88FF; 
 
 // The text field
 styleSheet.insertRule(` #RLC-box input {
-width:100%;
+margin: 3px;
+width:calc(100% - 6px);
 position: static;
 font-size: `+font_size+`px;
 padding: 3px;
@@ -123,6 +121,9 @@ transition: all 500ms;
 display: none;
 }`);
 
+styleSheet.insertRule(` #RLC-box input.team {
+}`);
+
 styleSheet.insertRule(` #RLC-box:focus-within input {
 }`);
 
@@ -131,12 +132,6 @@ styleSheet.insertRule(` #RLC-box .label {
 color: LightGrey;
 margin-left: 35px;
 }`);
-
-
-
-// =====SELYTS=====
-
-
 
 
 
@@ -198,7 +193,7 @@ tagpro.ready(function() {
 
     //Listen for messages, and add them to RLC:
 
-    tagpro.socket.on('chat', function (chat) {
+    function handleChat (chat) {
 
         // Return disabled chat types
         if (tagpro.settings.ui) {
@@ -270,25 +265,24 @@ tagpro.ready(function() {
         clearTimeout(timeout);    // Remove any existing timeout
 
         timeout = setTimeout(()=>chats.classList.remove('shown'),show_time);   // Set a timeout to hide the chats*/
-    });
+    }
+
+    tagpro.socket.on('chat', handleChat);
+    if (tagpro.group.socket) tagpro.group.socket.on('chat', handleChat);
 
 
 
     tagpro.chat.resize = function() {
 
-        chats.style.left = canvas.offsetLeft + 10 + 'px';
-        chats.style.top = canvas.offsetTop + 10 + 'px';
-
         box.style.left = canvas.offsetLeft + 10 + 'px';
         box.style.top = canvas.offsetTop + 10 + 'px';
+
+        chats.scrollTop = chats.scrollHeight;
 
         if (!hide_default_chat) {
             default_chat.style.left = canvas.offsetLeft + 10 + 'px';
             default_chat.style.top = canvas.offsetTop + canvas.height - default_chat.offsetHeight - 50 + 'px';
         }
-
-        input.style.left = '';
-        input.style.top = '';
 
     }
 
