@@ -497,7 +497,7 @@ var autolinker = new Autolinker( {
 
 tagpro.ready(function() {
 
-    if (rollingchat) setTimeout(enableRollingChat, 3000);
+    if (rollingchat) enableRollingChat();
 
     var timeout;
 
