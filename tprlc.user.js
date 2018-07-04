@@ -1,29 +1,67 @@
 // ==UserScript==
 // @name         TagPro RL Chat
-// @description  Enhances the chat by stealing ideas from Rocket League
+// @description  Enhances the chat by mimicking Rocket League
 // @author       Ko
-// @version      0.3
+// @version      1.0
 // @include      *.koalabeast.com:*
+// @include      *.koalabeast.com/
 // @include      *.jukejuice.com:*
 // @include      *.newcompte.fr:*
-// @downloadURL  https://github.com/wilcooo/TagPro-RLC/raw/master/tprlc.user.js
+// @downloadURL  https://github.com/wilcooo/TagPro-RL/raw/master/tprlc.user.js
 // @supportURL   https://www.reddit.com/message/compose/?to=Wilcooo
 // @website      https://redd.it/no-post-yet
 // @require      https://cdnjs.cloudflare.com/ajax/libs/autolinker/1.6.2/Autolinker.min.js
 // @license      MIT
+// @require      https://openuserjs.org/src/libs/sizzle/GM_config.js
+// @grant        GM_setValue
+// @grant        GM_getValue
 // ==/UserScript==
 
 
-const position = 'top-left'; // top- bottom- -left -right (8 possibilities)
-
-const show_time = 5000; // milliseconds to show the chat after a new message arrives
-const box_width = 300;  // pixels
-const font_size = 12;   // pixels
-const lines = 8;        // number of visible chat lines
 
 
 
-/* Structure:
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//     ### --- OPTIONS --- ###                                                                                            //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////  //
+                                                                                                                      //  //
+// Looking for options? They are on the homepage! Look for a green 'RL-chat' button.                                  //  //
+// The only thing you can change here are what system messages will be replaced.                                      //  //
+// null means the system message won't be shown at all, any other string will replace                                 //  //
+// the message. The main goal is to reduce the space these messages take up.                                          //  //
+                                                                                                                      //  //
+const system_messages = {                                                                                             //  //
+    "Since you refreshed, you will have to wait 10 seconds to respawn.": "Wait 10 seconds after a refresh.",
+    "Since there aren't many players in this game yet, you'll get a bonus": "There aren't many players in this game",
+    "20 rank points if you stick around and make it a real match.": null,
+    "15 rank points if you stick around and make it a real match.": null,
+    "10 rank points if you stick around and make it a real match.": null,
+    "5 rank points if you stick around and make it a real match.": null,
+    "Thanks, you're getting 5 bonus rank points for that.": null,
+    "THROWBACK MAP!": "This is a throwback map.",
+    "TagPro Neomacro Plus Loaded!": null,
+    "You can't switch teams right now.": "You can't switch teams right now.",
+}                                                                                                                     //  //
+                                                                                                                      //  //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////  //
+//                                                                                     ### --- END OF OPTIONS --- ###     //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+//////////////////////////////////////
+// SCROLL FURTHER AT YOUR OWN RISK! //
+//////////////////////////////////////
+
+
+
+
+
+
+/* Structure: (for reference)
 
 div#RLC-box
 
@@ -47,6 +85,138 @@ div#RLC-box
         input#chat             // Note: this is the original TP chatbox!
 
 */
+
+
+
+
+// =====CONFIG SECTION=====
+
+
+// DON'T CHANGE THE OPTIONS HERE, AS YOU CAN CHANGE THEM ON THE TAGPRO HOME PAGE!
+
+GM_config.init(
+    {
+        id: 'RL-Chat',
+        title: 'TagPro RL Chat Configuration',
+        fields:
+        {
+            'position':
+            {
+                'label': 'Position',
+                'section': 'Appearance',
+                'type': 'select',
+                'options': ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+                'default': 'top-left',
+            },
+            'font_size':
+            {
+                'label': 'Font size (pixels)',
+                'type': 'int',
+                'default': 12,
+                'min': 0,
+            },
+            'lines':
+            {
+                'label': 'Height of the box (amount of lines!)',
+                'type': 'int',
+                'default': 8,
+                'min':0,
+            },
+            'box_width':
+            {
+                'label': 'Width of the box (pixels)',
+                'type': 'int',
+                'default': 300,
+                'min': 0,
+            },
+            'hide_system':
+            {
+                'label': 'Hide the most annoying system messages ("Since there aren\'t many players...")',
+                'type': 'checkbox',
+                'default': true,
+            },
+            'show_time':
+            {
+                'label': 'Time to show RL-chat after message (seconds)',
+                'section': ['Showing/Hiding the chat',
+                            'By default, the chat is hidden. Once a message arrives, the chat (including past messages) will be shown for a few seconds.'],
+                'type': 'int',
+                'default': 6,
+                'min':0,
+            },
+            'permanent_end':
+            {
+                'label': 'Permanently show RL-chat after the game has ended',
+                'type': 'checkbox',
+                'default': true,
+            },
+            'permanent_always':
+            {
+                'label': 'Permanently show RL-chat. Always',
+                'type': 'checkbox',
+                'default': false,
+            },
+            'hide_default_chat':
+            {
+                'label': 'Hide the default chat (Recommended)',
+                'type': 'checkbox',
+                'default': true,
+            },
+        }
+    });
+
+
+// Add the config button to the TagPro profile page.
+if (!location.port) {
+    // Add a button to the homepage
+
+    var button = document.createElement('a');
+    button.classList.add('btn','button');
+    button.style.cursor = 'pointer';
+    button.id = 'RLC_btn';
+    button.innerHTML = 'RL Chat<span class="sub-text">Configuration</span>';
+    button.style.margin = '10px';
+
+    button.onclick = function(){GM_config.open();};      // A click opens the options
+
+    var btn_location = $("#userscript-home")[0] || $("#play")[0] || function(){
+        console.error('RL-Chat: Could not place the RL-chat button to the homepage. Did the layout change?');
+        tagpro.helpers.displayError('RL-Chat: Could not place the RL-chat button to the homepage. Did the layout change?');
+        return null;
+    }();
+
+    if (!btn_location) return;
+
+    if ($("#userscript-home")[0]) $("#userscript-home")[0].classList.remove('hidden');
+
+    btn_location.appendChild(button);
+
+    return;
+}
+
+
+
+
+const position  = GM_config.get('position'); // top- bottom- -left -right (8 possibilities)
+const show_time = GM_config.get('show_time')*1000; // milliseconds to show the chat after a new message arrives
+const box_width = GM_config.get('box_width');      // pixels
+const font_size = GM_config.get('font_size');      // pixels
+const lines     = GM_config.get('lines');          // number of visible chat lines
+
+const permanent_end = GM_config.get('permanent_end');
+const permanent_always = GM_config.get('permanent_always');
+const hide_system = GM_config.get('hide_system'); // hide '15 bonus rank points' etc...
+const hide_default_chat = GM_config.get('hide_default_chat'); // good for debugging.
+
+
+
+// =====NOITCES GIFNOC=====
+
+
+
+
+
+
 
 
 
@@ -78,12 +248,13 @@ transition: background 500ms;
 width:`+box_width+`px;
 border-radius: 10px;
 font-size:`+font_size+`px;
+margin: 10px;
 }`);
 
 
 
 // The container when it's shown (while composing a message)
-styleSheet.insertRule(`#RLC-box:focus-within {
+styleSheet.insertRule(`#RLC-box:focus-within, #RLC-box.permanent {
 background: rgba(0,0,0,.8);
 }`);
 
@@ -122,7 +293,7 @@ left: 0;
 
 // This same box, but when it's .shown
 // Using opacity instead of display:none or visibility allows us to use CSS transistion
-styleSheet.insertRule(`#RLC-box:focus-within .chats, #RLC-box .chats.shown {
+styleSheet.insertRule(`#RLC-box:focus-within .chats, #RLC-box.permanent .chats, #RLC-box .chats.shown {
 opacity:1;
 }`);
 
@@ -163,8 +334,8 @@ styleSheet.insertRule(` #RLC-box .chats div.announcement       { color:#FF88FF; 
 
 // Links. Same color as the message, but underlined.
 styleSheet.insertRule(` #RLC-box a {
-color: inherit;
-text-decoration: underline;
+color: #8BC34A;
+text-decoration: underline double;
 }`);
 
 
@@ -177,15 +348,21 @@ border-radius: 8px;
 margin: 3px;
 width: calc(100% - 6px);
 padding: 3px;
-border: 2px outset CadetBlue;
+border: 2px inset Gray;
 transition: opacity 500ms;
 opacity: 0;
 display: table;
 font-weight: normal;
+background: rgba(255,255,255,.15);
+cursor: text;
+}`);
+
+styleSheet.insertRule(` #RLC-box:focus-within label {
+border: 2px outset CadetBlue;
 }`);
 
 // Same trick as before to hide/show it.
-styleSheet.insertRule(` #RLC-box:focus-within label {
+styleSheet.insertRule(` #RLC-box:focus-within label, #RLC-box.permanent label {
 opacity: 1;
 }`);
 
@@ -255,6 +432,7 @@ if (hide_default_chat) default_chat.style.display = 'none';
 var box = document.createElement('div');
 box.id = 'RLC-box';
 game.appendChild( box );
+if (permanent_always) box.classList.add('permanent');
 
 // Add a wrapper for around the chats
 
@@ -325,7 +503,13 @@ tagpro.ready(function() {
             if ( !tagpro.settings.ui.allChat && chat.to == "all" && chat.from ) return;
             if ( !tagpro.settings.ui.teamChat && chat.to == "team" ) return;
             if ( !tagpro.settings.ui.groupChat && chat.to == "group" ) return;
-            if ( !tagpro.settings.ui.systemChat && chat.to == "all" && !chat.from ) return;
+            if ( chat.to == "all" && !chat.from ) {
+                if (!tagpro.settings.ui.systemChat) return;
+                if (hide_system && chat.message in system_messages) {
+                    chat.message = system_messages[chat.message];
+                    if (!chat.message) return;
+                }
+            }
         }
 
 
@@ -398,15 +582,22 @@ tagpro.ready(function() {
     tagpro.socket.on('chat', handleChat);
     if (tagpro.group.socket) tagpro.group.socket.on('chat', handleChat);
 
+    // TODO: click on label opens all-chat (if not yet opened)
 
 
     // Change the built-in jQuery function .show()
     //  to make it trigger an event.
     // This function is used by TagPro to show the input-box.
-    var org_show = $.fn.show;
+    $.fn.org_show = $.fn.show;
     $.fn.show = function(speed, easing, callback) {
         $(this).trigger('show');
-        return org_show.apply(this,arguments);
+        return $(this).org_show(...arguments);
+    }
+    // Same for .hide()
+    $.fn.org_hide = $.fn.hide;
+    $.fn.hide = function(e, r, i) {
+        $(this).trigger('hide');
+        return $(this).org_hide(...arguments);
     }
 
     // Keep track of what is the last pressed key,
@@ -414,8 +605,7 @@ tagpro.ready(function() {
     var last_keyCode = null;
     document.addEventListener('keydown', event => last_keyCode = event.keyCode);
 
-    // We can then listen to this 'show' event,
-    // so that we know when to change the label ('team', 'group', 'mod' or nothing)
+    // When the input is shown, add a label
     $(input).on('show',function(){
         setTimeout(function(){
             if ( tagpro.keys.chatToAll.indexOf(last_keyCode) > -1 )
@@ -437,12 +627,77 @@ tagpro.ready(function() {
         });
     });
 
+    // When the input is hidden, hide the label
+    $(input).on('hide',function(){
+        label.classList.remove('all');
+        label.classList.remove('team');
+        label.classList.remove('group');
+        label.classList.remove('mod');
+    });
+
+    // Permanently show the chat box after a game ends
+    if (permanent_end)
+        tagpro.socket.on('end', function(end) {
+            // Show the box
+            box.classList.add('permanent');
+        });
+
+    // When clicking the label, open the chat
+    // (this will only be used once a game has ended)
+    label.addEventListener('click', function(){
+        if (input.style.display == 'none') {
+            // Open the chat box:
+            var e = new Event("keydown");
+            e.keyCode = 'RL-Chat';
+            tagpro.keys.chatToAll.push('RL-Chat');
+            document.dispatchEvent(e);
+            tagpro.keys.chatToAll.pop();
+        }
+    });
+
+    // When the input looses focus, hide it
+    // (so that it can be reopened with Enter or T or whatever)
+    input.addEventListener('blur', function(){
+        if (input.style.display == 'inline-block') {
+            // Open the chat box:
+            var e = new Event("keydown");
+            e.keyCode = 'RL-Chat';
+            tagpro.keys.cancelChat.push('RL-Chat');
+            input.dispatchEvent(e);
+            tagpro.keys.cancelChat.pop();
+        }
+    });
+
     // Modify TagPro's resize function, which is called whenever
     // your window size changes. (going fullscreen, zooming, etc.)
+    tagpro.chat.org_resize = tagpro.chat.resize;
     tagpro.chat.resize = function() {
 
-        box.style.left = canvas.offsetLeft + 10 + 'px';
-        box.style.top = canvas.offsetTop + 10 + 'px';
+        box.style.left = '';
+        box.style.right = '';
+        box.style.top = '';
+        box.style.bottom = '';
+
+        switch (position) {
+            case 'top-right':
+                box.style.right = game.offsetWidth - canvas.offsetLeft - canvas.offsetWidth + 'px';
+                box.style.top = canvas.offsetTop + 'px';
+                break;
+            case 'bottom-right':
+                box.style.right = game.offsetWidth - canvas.offsetLeft - canvas.offsetWidth + 'px';
+                box.style.bottom = window.innerHeight - canvas.offsetTop - canvas.offsetHeight + 'px';
+                break;
+            case 'bottom-left':
+                box.style.left = canvas.offsetLeft + 'px';
+                box.style.bottom = window.innerHeight - canvas.offsetTop - canvas.offsetHeight + 'px';
+                break;
+            case 'top-left':
+            default:
+                box.style.left = canvas.offsetLeft + 'px';
+                box.style.top = canvas.offsetTop + 'px';
+                if (tagpro.settings.ui.performanceInfo) box.style.marginTop = '30px';
+        }
+
 
         chats.scrollTop = chats.scrollHeight;
 
@@ -451,10 +706,13 @@ tagpro.ready(function() {
             default_chat.style.top = canvas.offsetTop + canvas.height - default_chat.offsetHeight - 50 + 'px';
         }
 
+        return tagpro.chat.org_resize(...arguments);
+
     }
 
     // Call it once to make sure everyting is positioned correctly at the start.
     tagpro.chat.resize();
+
 });
 
 
