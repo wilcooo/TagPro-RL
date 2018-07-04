@@ -2,7 +2,7 @@
 // @name         TagPro RL Chat
 // @description  Enhances the chat by mimicking Rocket League
 // @author       Ko
-// @version      1.0
+// @version      1.1
 // @include      *.koalabeast.com:*
 // @include      *.koalabeast.com/
 // @include      *.jukejuice.com:*
@@ -156,6 +156,12 @@ GM_config.init(
                 'type': 'checkbox',
                 'default': false,
             },
+            'rollingchat':
+            {
+                'label': 'Use the arrow keys to roll while typing',
+                'type': 'checkbox',
+                'default': true,
+            },
             'hide_default_chat':
             {
                 'label': 'Hide the default chat (Recommended)',
@@ -202,6 +208,8 @@ const show_time = GM_config.get('show_time')*1000; // milliseconds to show the c
 const box_width = GM_config.get('box_width');      // pixels
 const font_size = GM_config.get('font_size');      // pixels
 const lines     = GM_config.get('lines');          // number of visible chat lines
+
+const rollingchat = GM_config.get('rollingchat');
 
 const permanent_end = GM_config.get('permanent_end');
 const permanent_always = GM_config.get('permanent_always');
@@ -489,6 +497,7 @@ var autolinker = new Autolinker( {
 
 tagpro.ready(function() {
 
+    if (rollingchat) setTimeout(enableRollingChat, 3000);
 
     var timeout;
 
@@ -716,4 +725,41 @@ tagpro.ready(function() {
 });
 
 
+function enableRollingChat(){
+
+    // Return if rollingchat is already enabled!
+    // Otherwise the keypresses will be sent twice
+    if (tagpro.rollingchat) return;
+    tagpro.rollingchat = true;
+
+    // intercept all key presses and releases:
+    document.addEventListener('keydown', keyUpOrDown);
+    document.addEventListener('keyup', keyUpOrDown);
+
+    function keyUpOrDown( event ) {
+
+        // The key that is pressed/released (undefined when it is any other key)
+        var arrow = ['left','up','right','down'][[37,38,39,40].indexOf(event.keyCode)]
+
+        // Only if the controls are disabled (usually while composing a message)
+        // AND the key is indeed an arrow (not undefined)
+        if (tagpro.disableControls && arrow) {
+
+            // Whether you are releasing instead of pressing the key:
+            var releasing = event.type == 'keyup';
+
+            // Prevent the 'default' thing to happen, which is the cursor moving through the message you are typing
+            event.preventDefault();
+
+            // Send the key press/release to the server!
+            tagpro.sendKeyPress(arrow, releasing);
+            console.log('RL CHAT ROLLING');
+
+            // Not necesarry, but useful for other scripts to 'hook onto'
+            if (!releasing && tagpro.events.keyDown) tagpro.events.keyDown.forEach(f => f.keyDown(arrow));
+            if (releasing && tagpro.events.keyUp) tagpro.events.keyUp.forEach(f => f.keyUp(arrow));
+            tagpro.ping.avg&&setTimeout(()=>(tagpro.players[tagpro.playerId][arrow]=!releasing),tagpro.ping.avg/2);
+        }
+    }
+}
 // =====NOITCES CIGOL=====
