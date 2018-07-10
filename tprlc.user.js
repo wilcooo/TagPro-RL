@@ -2,7 +2,7 @@
 // @name         TagPro RL Chat
 // @description  Enhances the chat by mimicking Rocket League
 // @author       Ko
-// @version      1.1
+// @version      1.2
 // @include      *.koalabeast.com:*
 // @include      *.koalabeast.com/
 // @include      *.jukejuice.com:*
@@ -31,16 +31,19 @@
 // the message. The main goal is to reduce the space these messages take up.                                          //  //
                                                                                                                       //  //
 const system_messages = {                                                                                             //  //
-    "Since you refreshed, you will have to wait 10 seconds to respawn.": "Wait 10 seconds after a refresh.",
+    "Since you refreshed, you will have to wait 10 seconds to respawn.": "Wait 10 seconds after a refresh",
     "Since there aren't many players in this game yet, you'll get a bonus": "There aren't many players in this game",
     "20 rank points if you stick around and make it a real match.": null,
     "15 rank points if you stick around and make it a real match.": null,
     "10 rank points if you stick around and make it a real match.": null,
     "5 rank points if you stick around and make it a real match.": null,
     "Thanks, you're getting 5 bonus rank points for that.": null,
-    "THROWBACK MAP!": "This is a throwback map.",
+    "THROWBACK MAP!": "This is a throwback map",
     "TagPro Neomacro Plus Loaded!": null,
     "You can't switch teams right now.": "You can't switch teams right now.",
+    "You've joined a game as a spectator. Once enough players come online, you'll": "You are spectating",
+    "be auto-joined to a game. Q/W=Rotate through players. A=Red's flag carrier.": null,
+    "S=Blue's flag carrier. +/- for zooming. C=Center map view. SPACE=Toggle auto-join.": null,
 }                                                                                                                     //  //
                                                                                                                       //  //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////  //
@@ -497,7 +500,7 @@ var autolinker = new Autolinker( {
 
 tagpro.ready(function() {
 
-    if (rollingchat) enableRollingChat();
+    if (rollingchat) setTimeout(enableRollingChat, 3000);
 
     var timeout;
 
@@ -668,7 +671,7 @@ tagpro.ready(function() {
     // (so that it can be reopened with Enter or T or whatever)
     input.addEventListener('blur', function(){
         if (input.style.display == 'inline-block') {
-            // Open the chat box:
+            // Close the chat box:
             var e = new Event("keydown");
             e.keyCode = 'RL-Chat';
             tagpro.keys.cancelChat.push('RL-Chat');
@@ -682,29 +685,38 @@ tagpro.ready(function() {
     tagpro.chat.org_resize = tagpro.chat.resize;
     tagpro.chat.resize = function() {
 
-        box.style.left = '';
-        box.style.right = '';
-        box.style.top = '';
-        box.style.bottom = '';
-
         switch (position) {
+
+            default: case 'top-left':
+                box.style.top = canvas.offsetTop + 'px';
+                box.style.left = canvas.offsetLeft + 'px';
+                box.style.bottom = '';
+                box.style.right = '';
+
+                // move 30 pixels down if you have FPS & ping enabled.
+                if (tagpro.settings.ui.performanceInfo) box.style.top = canvas.offsetTop + 30 + 'px';
+                break;
+
             case 'top-right':
-                box.style.right = game.offsetWidth - canvas.offsetLeft - canvas.offsetWidth + 'px';
                 box.style.top = canvas.offsetTop + 'px';
+                box.style.right = game.offsetWidth - canvas.offsetLeft - canvas.offsetWidth + 'px';
+                box.style.bottom = '';
+                box.style.left = '';
                 break;
+
             case 'bottom-right':
+                box.style.bottom = window.innerHeight - canvas.offsetTop - canvas.offsetHeight + 'px';
                 box.style.right = game.offsetWidth - canvas.offsetLeft - canvas.offsetWidth + 'px';
-                box.style.bottom = window.innerHeight - canvas.offsetTop - canvas.offsetHeight + 'px';
+                box.style.top = '';
+                box.style.left = '';
                 break;
+
             case 'bottom-left':
-                box.style.left = canvas.offsetLeft + 'px';
                 box.style.bottom = window.innerHeight - canvas.offsetTop - canvas.offsetHeight + 'px';
-                break;
-            case 'top-left':
-            default:
                 box.style.left = canvas.offsetLeft + 'px';
-                box.style.top = canvas.offsetTop + 'px';
-                if (tagpro.settings.ui.performanceInfo) box.style.marginTop = '30px';
+                box.style.top = '';
+                box.style.right = '';
+                break;
         }
 
 
@@ -727,10 +739,8 @@ tagpro.ready(function() {
 
 function enableRollingChat(){
 
-    // Return if rollingchat is already enabled!
-    // Otherwise the keypresses will be sent twice
-    if (tagpro.rollingchat) return;
-    tagpro.rollingchat = true;
+    // It is perfectly fine to add this function (unchanged) to your own script.
+    // Multiple instances of "rollingchat" can run simultaniously without problems.
 
     // intercept all key presses and releases:
     document.addEventListener('keydown', keyUpOrDown);
@@ -751,9 +761,11 @@ function enableRollingChat(){
             // Prevent the 'default' thing to happen, which is the cursor moving through the message you are typing
             event.preventDefault();
 
+            // Return if already pressed/released
+            if (tagpro.players[tagpro.playerId].pressing[arrow] != releasing) return;
+
             // Send the key press/release to the server!
             tagpro.sendKeyPress(arrow, releasing);
-            console.log('RL CHAT ROLLING');
 
             // Not necesarry, but useful for other scripts to 'hook onto'
             if (!releasing && tagpro.events.keyDown) tagpro.events.keyDown.forEach(f => f.keyDown(arrow));
