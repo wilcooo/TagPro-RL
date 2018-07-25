@@ -2,7 +2,7 @@
 // @name         TagPro RL Chat
 // @description  Enhances the chat by mimicking Rocket League
 // @author       Ko
-// @version      1.2
+// @version      1.2.1
 // @include      *.koalabeast.com:*
 // @include      *.koalabeast.com/
 // @include      *.jukejuice.com:*
@@ -115,7 +115,7 @@ GM_config.init(
             {
                 'label': 'Font size (pixels)',
                 'type': 'int',
-                'default': 12,
+                'default': 14,
                 'min': 0,
             },
             'lines':
@@ -427,7 +427,7 @@ styleSheet.insertRule(` #RLC-box label.mod       input {color:#00B900;}`); // Gr
 
 
 // Some default DOM elements TagPro
-var canvas = document.getElementsByTagName('canvas')[0];
+var canvas = document.getElementById('viewport');
 var game = document.getElementsByClassName('game')[0];
 var default_chat = document.getElementById('chatHistory');
 var input = document.getElementById('chat');
@@ -500,7 +500,7 @@ var autolinker = new Autolinker( {
 
 tagpro.ready(function() {
 
-    if (rollingchat) setTimeout(enableRollingChat, 3000);
+    if (rollingchat) enableRollingChat();
 
     var timeout;
 
@@ -684,6 +684,8 @@ tagpro.ready(function() {
     // your window size changes. (going fullscreen, zooming, etc.)
     tagpro.chat.org_resize = tagpro.chat.resize;
     tagpro.chat.resize = function() {
+
+        canvas = document.getElementById('viewport');
 
         switch (position) {
 
