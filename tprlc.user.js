@@ -2,7 +2,7 @@
 // @name         TagPro RL Chat
 // @description  Enhances the chat by mimicking Rocket League
 // @author       Ko
-// @version      2.0
+// @version      2.1
 // @include      *.koalabeast.com*
 // @include      *.jukejuice.com*
 // @include      *.newcompte.fr*
@@ -379,7 +379,8 @@ white-space: pre;
 styleSheet.insertRule(`#RLC-box .chats {
 opacity:0;
 overflow:hidden;
-transition: opacity 500ms ease 500ms;
+transition: opacity 500ms;
+transition-delay: 500ms;
 position: absolute;
 height: 100%;
 width: 100%;
@@ -428,6 +429,7 @@ box-shadow: -17px 0 0 -5px;
 // Using opacity instead of display:none or visibility allows us to use CSS transistion
 styleSheet.insertRule(`#RLC-box:focus-within .chats, #RLC-box.permanent .chats, #RLC-box .chats.shown {
 opacity:1;
+transition-delay: 0s;
 }`);
 
 // A single message. Combining these multiple shadows creates a hard 1px line around the text,
