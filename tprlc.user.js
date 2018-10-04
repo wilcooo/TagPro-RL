@@ -2,7 +2,7 @@
 // @name         TagPro RL Chat
 // @description  Enhances the chat by mimicking Rocket League
 // @author       Ko
-// @version      2.1
+// @version      2.2
 // @include      *.koalabeast.com*
 // @include      *.jukejuice.com*
 // @include      *.newcompte.fr*
@@ -741,6 +741,8 @@ if ((tagpro && tagpro.state) || location.port) {
 
             timeout = setTimeout(()=>chats.classList.remove('shown'),show_time*1e3);   // Set a timeout to hide the chats
 
+            // Set volume according to the awesome Volume Slider®
+            chat_sound.volume = left_sound.volume = join_sound.volume = 1 * tagpro.volumeCoefficient || 1;
 
             // Play a sound
             if (chat.from && sound_on_chat) chat_sound.play();
